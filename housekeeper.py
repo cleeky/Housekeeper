@@ -17,13 +17,14 @@ import getopt
 import re
 import shutil
 import glob
+from zipfile import ZipFile
 
 # Authorship information
 __author__ = "Colin Leek"
 __copyright__ = ""
 __credits__ = ""
 __license__ = "GPL"
-__version__ = "0.10"
+__version__ = "0.20"
 __maintainer__ = ""
 __email__ = ""
 __status__ = "Prototype"
@@ -45,7 +46,6 @@ def logwrite(unit, message, status="INFO" ):
     unit = unit+"        "
     logline =str(linedate)+" ["+status[:5]+"] - "+unit[:8]+" - "+message+"\n"
     lf.write(logline)
-    print(logline)
 
 def copy_function(aline):
     temp = aline.split("|")
@@ -58,18 +58,18 @@ def copy_function(aline):
         return
     if action.fileage == 0:
         # If there is not a file age defined the just copy the files as defined by the rule
-        for file in glob.glob(action.sourcepath + "\\" + action.sourcefile):
-            # todo shutil.copy(file, action.targetpath+"\\")
+        for file in glob.glob(os.path.join(action.sourcepath,action.sourcefile)):
+            shutil.copy(file, action.targetpath+"\\")
             message = "Successfully copied " + file
             logwrite("COPY", message)
     elif action.fileage > 0:
         # There is an age limit on the files to be copied
         current_dt = dt.datetime.now()
         current_ts = current_dt.timestamp()
-        for file in glob.glob(action.sourcepath+"\\"+action.sourcefile):
+        for file in glob.glob(os.path.join(action.sourcepath,action.sourcefile)):
             file_ts = os.stat(file).st_mtime
             if (current_ts - file_ts) > action.fileage:
-                # todo shutil.copy(file, action.targetpath+"\\")
+                shutil.copy(file, action.targetpath+"\\")
                 message = "Successfully copied " + file
                 logwrite("COPY", message)
 
@@ -84,29 +84,91 @@ def archive_function(aline):
     if not os.path.exists(action.targetpath):
         logwrite("COPY", "The target path does not exists " + action.targetpath, "ERROR")
         return
-
-    logwrite("ARCHIVE", "This is a test Log Message")
-
+    if action.fileage == 0:
+        # If there is not a file age defined the just copy the files as defined by the rule
+        for file in glob.glob(os.path.join(action.sourcepath,action.sourcefile)):
+            zip_filename = re.sub(r'\..{3}$', '.zip', file)
+            zip_file = os.path.join(action.targetpath, zip_filename)
+            with ZipFile(zip_file, 'w')as zipf:
+                zipf.write(file, arcname=file)
+            message = "Archived " + file
+            logwrite("ARCHIVE", message)
+    elif action.fileage > 0:
+        # There is an age limit on the files to be copied
+        current_dt = dt.datetime.now()
+        current_ts = current_dt.timestamp()
+        for file in glob.glob(os.path.join(action.sourcepath,action.sourcefile)):
+            file_ts = os.stat(file).st_mtime
+            if (current_ts - file_ts) > action.fileage:
+                zip_filename = re.sub(r'\..{3}$', '.zip', file)
+                zip_file = os.path.join(action.targetpath, zip_filename)
+                with ZipFile(zip_file, 'w') as zipf:
+                    zipf.write(file, arcname=file)
+                message = "Archived " +file + " to " + zip_file
+                logwrite("ARCHIVE", message)
 
 def group_archive_function(aline):
     # todo Need function to GroupArchive(gzip)
     print("Archive Group Function")
     temp = aline.split("|")
     action = RuleValue(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5])
+    if not os.path.exists(action.sourcepath):
+        logwrite("COPY", "The source path does not exists " + action.sourcepath, "ERROR")
+        return
+    if not os.path.exists(action.targetpath):
+        logwrite("COPY", "The target path does not exists " + action.targetpath, "ERROR")
+        return
 
 
 def delete_function(aline):
-    # todo Need function to Delete
-    print("Delete Function")
     temp = aline.split("|")
     action = RuleValue(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5])
+    if not os.path.exists(action.sourcepath):
+        logwrite("DELETE", "The source path does not exists " + action.sourcepath, "ERROR")
+        return
+    if action.fileage == 0:
+        # If there is not a file age defined the just copy the files as defined by the rule
+        for file in glob.glob(os.path.join(action.sourcepath, action.sourcefile)):
+             #os.remove(file)
+             message = "Successfully deleted " + file
+             logwrite("DELETE", message)
+    elif action.fileage > 0:
+        # There is an age limit on the files to be copied
+        current_dt = dt.datetime.now()
+        current_ts = current_dt.timestamp()
+        for file in glob.glob(os.path.join(action.sourcepath, action.sourcefile)):
+            file_ts = os.stat(file).st_mtime
+            if (current_ts - file_ts) > action.fileage:
+                #os.remove(file)
+                message = "Successfully deleted " + file
+                logwrite("DELETE", message)
 
 
 def move_function(aline):
-    # todo Need function to Move
-    print("Move Function")
     temp = aline.split("|")
     action = RuleValue(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5])
+    if not os.path.exists(action.sourcepath):
+        logwrite("MOVE", "The source path does not exists '" + action.sourcepath + "'", "ERROR")
+        return
+    if not os.path.exists(action.targetpath):
+        logwrite("MOVE", "The target path does not exists '" + action.targetpath + "'", "ERROR")
+        return
+    if action.fileage == 0:
+        # If there is not a file age defined the just copy the files as defined by the rule
+        for file in glob.glob(os.path.join(action.sourcepath, action.sourcefile)):
+            #shutil.move(file, action.targetpath+"\\")
+            message = "Successfully moved " + file + " to " + action.tragetpath
+            logwrite("MOVE", message)
+    elif action.fileage > 0:
+        # There is an age limit on the files to be copied
+        current_dt = dt.datetime.now()
+        current_ts = current_dt.timestamp()
+        for file in glob.glob(os.path.join(action.sourcepath, action.sourcefile)):
+            file_ts = os.stat(file).st_mtime
+            if (current_ts - file_ts) > action.fileage:
+                #shutil.move(file, action.targetpath+"\\")
+                message = "Successfully moved " + file + " to " + action.sourcepath
+                logwrite("MOVE", message)
 
 #**********************************************
 #* Main Script
@@ -152,7 +214,7 @@ for line in lines:
     elif action == 'D':
         # Call the Delete Function
         delete_function(line)
-    elif sction == 'M':
+    elif action == 'M':
         # Call the Move Function
         move_function(line)
     else:

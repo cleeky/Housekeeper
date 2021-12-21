@@ -9,5 +9,7 @@
 # 06.   Target Path:
 # 07.   Traget Name:
 
-A|C:\Users\cnlk\Downloads|*|10||
+A|C:\Users\cnlk\Downloads|*|10|C:\Users\cnlk\Documents||
 C|C:\Users\cnlk\Downloads|*.txt|10|C:\Users\cnlk\Documents|
+D|C:\Users\cnlk\Downloads|*.txt|10||
+M|C:\Users\cnlk\Downloads|*.txt|10|C:\Users\cnlk\Documents|
