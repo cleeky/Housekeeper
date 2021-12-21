@@ -1,0 +1,13 @@
+# House keeper configuration
+# Each Feild is seprated by | 
+# Order of Feilds
+# 01.   Operation: C - Copy, A - Archive, GA - Group Archive ,M - Move, D - Delete
+# 02.   Source Path:
+# 03.   Filename (Wild Cards can be use to select Multiply files)
+# 04.   File age selection
+# 05.    
+# 06.   Target Path:
+# 07.   Traget Name:
+
+A|C:\Users\cnlk\Downloads|*|10||
+C|C:\Users\cnlk\Downloads|*.txt|10|C:\Users\cnlk\Documents|
