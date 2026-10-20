@@ -1,0 +1,14 @@
+2021-12-22 16:04:17.228840 [INFO ] - MAIN     - Starting House keeping.
+2021-12-22 16:04:17.228840 [INFO ] - MAIN     - Using C:\Users\cnlk\CodeSource\Housekeeper\housekeeper.txt Rules File
+2021-12-22 16:04:17.255853 [INFO ] - ARCHIVE  - Archived C:\Users\cnlk\Downloads\github-recovery-codes (1).txt to C:\Users\cnlk\Documents\textfiles20211122.zip
+2021-12-22 16:04:17.255853 [INFO ] - ARCHIVE  - Remove Archivied File C:\Users\cnlk\Downloads\github-recovery-codes (1).txt
+2021-12-22 16:04:17.304840 [INFO ] - ARCHIVE  - Archived C:\Users\cnlk\Downloads\github-recovery-codes.txt to C:\Users\cnlk\Documents\textfiles20211122.zip
+2021-12-22 16:04:17.304840 [INFO ] - ARCHIVE  - Remove Archivied File C:\Users\cnlk\Downloads\github-recovery-codes.txt
+2021-12-22 16:04:17.326843 [INFO ] - ARCHIVE  - Archived C:\Users\cnlk\Downloads\github-recovery-codes (1).txt to C:\Users\cnlk\Documents\github-recovery-codes (1).zip
+2021-12-22 16:04:17.326843 [INFO ] - ARCHIVE  - Remove Archivied File C:\Users\cnlk\Downloads\github-recovery-codes (1).txt
+2021-12-22 16:04:17.331841 [INFO ] - ARCHIVE  - Archived C:\Users\cnlk\Downloads\github-recovery-codes.txt to C:\Users\cnlk\Documents\github-recovery-codes.zip
+2021-12-22 16:04:17.331841 [INFO ] - ARCHIVE  - Remove Archivied File C:\Users\cnlk\Downloads\github-recovery-codes.txt
+2021-12-22 16:04:17.343868 [INFO ] - COPY     - Successfully copied C:\Users\cnlk\Downloads\github-recovery-codes (1).txt to C:\Users\cnlk\Documents
+2021-12-22 16:04:17.352845 [INFO ] - COPY     - Successfully copied C:\Users\cnlk\Downloads\github-recovery-codes.txt to C:\Users\cnlk\Documents
+2021-12-22 16:04:17.355843 [INFO ] - MOVE     - Successfully moved C:\Users\cnlk\Downloads\aaatest.txt to C:\Users\cnlk\Documents\aaatest.txt
+2021-12-22 16:04:17.355843 [INFO ] - MAIN     - End of house keeping

@@ -1,0 +1,18 @@
+2021-12-23 08:15:42.759063 [INFO ] - MAIN     - Starting House keeping.
+2021-12-23 08:15:42.759063 [INFO ] - MAIN     - Using C:\Users\cnlk\CodeSource\Housekeeper\housekeeper.txt Rules File
+2021-12-23 08:15:42.766060 [INFO ] - GARCHIVE - Archived C:\Users\cnlk\Downloads\github-recovery-codes (1).txt to C:\Users\cnlk\Documents\textfiles20211123.zip
+2021-12-23 08:15:42.766060 [INFO ] - GARCHIVE - Remove archived File C:\Users\cnlk\Downloads\github-recovery-codes (1).txt
+2021-12-23 08:15:42.775062 [INFO ] - GARCHIVE - Archived C:\Users\cnlk\Downloads\github-recovery-codes.txt to C:\Users\cnlk\Documents\textfiles20211123.zip
+2021-12-23 08:15:42.775062 [INFO ] - GARCHIVE - Remove archived File C:\Users\cnlk\Downloads\github-recovery-codes.txt
+2021-12-23 08:15:42.779065 [INFO ] - ARCHIVE  - Archived C:\Users\cnlk\Downloads\github-recovery-codes (1).txt to C:\Users\cnlk\Documents\github-recovery-codes (1).zip
+2021-12-23 08:15:42.779065 [INFO ] - ARCHIVE  - Remove Archivied File C:\Users\cnlk\Downloads\github-recovery-codes (1).txt
+2021-12-23 08:15:42.781064 [INFO ] - ARCHIVE  - Archived C:\Users\cnlk\Downloads\github-recovery-codes.txt to C:\Users\cnlk\Documents\github-recovery-codes.zip
+2021-12-23 08:15:42.781064 [INFO ] - ARCHIVE  - Remove Archivied File C:\Users\cnlk\Downloads\github-recovery-codes.txt
+2021-12-23 08:15:42.825064 [INFO ] - COPY     - Successfully copied C:\Users\cnlk\Downloads\github-recovery-codes (1).txt to C:\Users\cnlk\Documents
+2021-12-23 08:15:42.828063 [INFO ] - COPY     - Successfully copied C:\Users\cnlk\Downloads\github-recovery-codes.txt to C:\Users\cnlk\Documents
+2021-12-23 08:15:42.830072 [INFO ] - DELETE   - Successfully deleted C:\Users\cnlk\Downloads\aaatest.txt
+2021-12-23 08:15:42.830072 [INFO ] - DELETE   - Successfully deleted C:\Users\cnlk\Downloads\github-recovery-codes (1).txt
+2021-12-23 08:15:42.830072 [INFO ] - DELETE   - Successfully deleted C:\Users\cnlk\Downloads\github-recovery-codes.txt
+2021-12-23 08:15:42.830072 [INFO ] - DELETE   - Successfully deleted C:\Users\cnlk\Downloads\jsonformatter.txt
+2021-12-23 08:15:42.834065 [INFO ] - MOVE     - Successfully moved C:\Users\cnlk\Downloads\aaatest.txt to C:\Users\cnlk\Documents\aaatest.txt
+2021-12-23 08:15:42.834065 [INFO ] - MAIN     - End of house keeping

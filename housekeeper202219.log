@@ -1,0 +1,32 @@
+2022-01-09 17:51:04.204304 [INFO ] - MAIN     - Starting House keeping.
+2022-01-09 17:51:04.204304 [INFO ] - MAIN     - Using e:\OneDrive\Documents\Scripting\python\Housekeeper\housekeeper.txt Rules File
+2022-01-09 17:51:04.309805 [INFO ] - DELETE   - Successfully deleted E:\Downloads\applist.txt
+2022-01-09 17:51:04.309913 [INFO ] - MAIN     - End of house keeping
+2022-01-09 17:53:07.877814 [INFO ] - MAIN     - Starting House keeping.
+2022-01-09 17:53:07.877814 [INFO ] - MAIN     - Using e:\OneDrive\Documents\Scripting\python\Housekeeper\housekeeper.txt Rules File
+2022-01-09 17:53:07.882970 [INFO ] - DELETE   - Successfully deleted E:\Downloads\applist.txt
+2022-01-09 17:53:07.883982 [INFO ] - MAIN     - End of house keeping
+2022-01-09 17:53:15.661397 [INFO ] - MAIN     - Starting House keeping.
+2022-01-09 17:53:15.661397 [INFO ] - MAIN     - Using e:\OneDrive\Documents\Scripting\python\Housekeeper\housekeeper.txt Rules File
+2022-01-09 17:53:15.667395 [INFO ] - DELETE   - Successfully deleted E:\Downloads\applist.txt
+2022-01-09 17:53:15.667395 [INFO ] - MAIN     - End of house keeping
+2022-01-09 17:54:04.097027 [INFO ] - MAIN     - Starting House keeping.
+2022-01-09 17:54:04.097027 [INFO ] - MAIN     - Using e:\OneDrive\Documents\Scripting\python\Housekeeper\housekeeper.txt Rules File
+2022-01-09 17:54:04.205440 [INFO ] - DELETE   - Successfully deleted E:\Downloads\applist.txt
+2022-01-09 17:54:04.205440 [INFO ] - MAIN     - End of house keeping
+2022-01-09 18:08:21.663728 [INFO ] - MAIN     - Starting House keeping.
+2022-01-09 18:08:21.663728 [INFO ] - MAIN     - Using e:\OneDrive\Documents\Scripting\python\Housekeeper\housekeeper.txt Rules File
+2022-01-09 18:20:55.262830 [INFO ] - COPY     - Successfully copied E:\Downloads\DBComix - Impossibly Obscene 1-5.rar to E:\Downloads\_test
+2022-01-09 18:21:23.947222 [INFO ] - COPY     - Successfully copied E:\Downloads\DBComix.-.Young.Heiress.1-6.rar to E:\Downloads\_test
+2022-01-09 18:21:24.639076 [INFO ] - COPY     - Successfully copied E:\Downloads\MetrobayComix - Invading Uranus.rar to E:\Downloads\_test
+2022-01-09 18:21:24.801310 [INFO ] - COPY     - Successfully copied E:\Downloads\Tangled Comic.rar to E:\Downloads\_test
+2022-01-09 18:21:24.805306 [INFO ] - DELETE   - Successfully deleted E:\Downloads\applist.txt
+2022-01-09 18:21:24.806305 [INFO ] - MAIN     - End of house keeping
+2022-01-09 18:47:18.919203 [INFO ] - MAIN     - Starting House keeping.
+2022-01-09 18:47:18.919203 [INFO ] - MAIN     - Using e:\OneDrive\Documents\Scripting\python\Housekeeper\housekeeper.txt Rules File
+2022-01-09 18:48:01.421453 [INFO ] - COPY     - Successfully copied E:\Downloads\DBComix - Impossibly Obscene 1-5.rar to E:\Downloads\_test
+2022-01-09 18:48:01.432504 [INFO ] - COPY     - Successfully copied E:\Downloads\DBComix.-.Young.Heiress.1-6.rar to E:\Downloads\_test
+2022-01-09 18:48:01.468832 [INFO ] - COPY     - Successfully copied E:\Downloads\MetrobayComix - Invading Uranus.rar to E:\Downloads\_test
+2022-01-09 18:48:01.473879 [INFO ] - COPY     - Successfully copied E:\Downloads\Tangled Comic.rar to E:\Downloads\_test
+2022-01-09 18:48:01.477876 [INFO ] - DELETE   - Successfully deleted E:\Downloads\applist.txt
+2022-01-09 18:48:01.479041 [INFO ] - MAIN     - End of house keeping

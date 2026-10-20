@@ -2,224 +2,655 @@
 """
 *********************************************************
     Application : housekeeper.py
-    Written By:     Colin Leek
-    Purpose: File Management script to perform automatic actions defined by rules
-    Version: 0.10
+    Written By:   Colin Leek
+    Purpose:      File Management script to perform automatic actions defined by rules
+    Version:      0.20
 
-    Description: 
-*********************************************************
+    Description:
+**********************************************************
 """
 # Import Modules
 import datetime as dt
-import os
-import sys
 import getopt
+import glob
+import os
 import re
 import shutil
-import glob
+import sys
+import boto3
 from zipfile import ZipFile
+from botocore.exceptions import ClientError
+from inspect import _Object
 
 # Authorship information
 __author__ = "Colin Leek"
-__copyright__ = ""
+__copyright__ = "GFT"
 __credits__ = ""
 __license__ = "GPL"
 __version__ = "0.20"
 __maintainer__ = ""
 __email__ = ""
-__status__ = "Prototype"
-#__status__ = "Prototype/Development/Production"
+__status__ = "Development"
+# __status__ = "Prototype/Development/Production"
+
 
 class RuleValue:
-    "This is Rule Value Class"
-    def __init__(self, o="", sp="", sf="", fa=0, tp="", tf=""):
-        self.operation = o
-        self.sourcepath = sp
-        self.sourcefile = sf
-        self.fileage = (float(fa)*24*60*60*60)
-        self.targetpath = tp
-        self.targetfile = tf
+    """Use to Store each indervidual Housekeeping rule"""
 
-def logwrite(unit, message, status="INFO" ):
+    def __init__(
+        self, operation, sourcepath, sourcefile, fileage, targetpath, targetfile
+    ):
+        """initilize the class variables
+
+        Args:
+            operation (str): Holds the code for the operation to be executed
+            sourcepath (str): Holds the path to source file
+            sourcefile (str): Holds the name to the source file
+            fileage (int): Holds the number of days for file age.
+            targetpath (str): Holds the path to target file
+            targetfile (str]): Holds the name to the target file
+        """
+        self.operation = operation
+        self.sourcepath = sourcepath
+        self.sourcefile = sourcefile
+        self.fileage = float((24 * 60 * 60 * 60) * int(fileage))
+        self.targetpath = targetpath
+        self.targetfile = targetfile
+
+    def updatetargetfile(self, value):
+        """updates the target file class item
+
+        Args:
+            value (str): Holds the file name which the date need to be inserted
+        """
+        self.targetfile = value
+
+    @classmethod
+    def from_string(cls, rule_line):
+        """Loads the class with the contentes of a passed string
+
+        Args:
+            rule_line (string): '|' separated string
+
+        Returns:
+            [class Variables]: the loaded class variables
+        """
+        rule_line = re.sub(r"\n", "", rule_line)
+        (
+            operation,
+            sourcepath,
+            sourcefile,
+            fileage,
+            targetpath,
+            targetfile,
+            end_of_line,
+        ) = rule_line.split("|")
+        return cls(operation, sourcepath, sourcefile, fileage, targetpath, targetfile)
+
+def s3_upload_file(file_name, bucket, Object_name=None):
+    """ s3_upload a file to an s3 bucket
+
+    Args:
+        file_name : File to Upload
+        bucket : Bucket to upload to
+        object_name: S3 Object name, If no specified then file_nameis used
+
+    Returns:
+        True if file was uploaded, else False
+    """
+
+    # if S3 object name was not Specified, use file_name
+    if Object_name is None:
+        Object_name = os.path.basename(file_name)
+
+    # Upload the file
+    s3_client = boto3.client('s3')
+    try:
+        response = s3_client.upload_file(file_name, bucket, Object_name)
+    except ClientError as e:
+        return False
+    return True
+
+def logwrite(unit, message, status="INFO"):
+    """Constructs the Log line with the current Date & Time, the Status, the passed message &
+       the Unit where the message was sent from.
+
+    Args:
+        unit (str): Which part of the script the logwrite
+                       was called from.
+        message (str): The passed message string
+        status (str, optional): What type of log (INFO, WARN or ERROR). Defaults to "INFO".
+    """
+
     linedate = dt.datetime.now()
-    status = status+" "
-    unit = unit+"        "
-    logline =str(linedate)+" ["+status[:5]+"] - "+unit[:8]+" - "+message+"\n"
+    status = status + " "
+    unit = unit + "        "
+    logline = (
+        str(linedate) + " [" + status[:5] + "] - " + unit[:8] + " - " + message + "\n"
+    )
     lf.write(logline)
 
+
+def tragetfile_date_insert(file_name):
+    """This will insert the date to the file name in the formay YYYYMMDD
+
+    Args:
+        file_name (str): The file name of the Taget name
+
+    Returns:
+        [type]: [description]
+    """
+    # if there is no target file then just return the blank target file name
+    if file_name == "":
+        return file_name
+    # identify if the date tag is included in the name target file name if not
+    # it returns just the target file name with no change.
+    regexp_date = re.compile(r"{date.*}")
+    temp_file = regexp_date.search(file_name)
+    if temp_file is None:
+        return file_name
+
+    elements = temp_file.group().replace("}", "")
+    # split the date tag into its components parts
+    elements = elements.split("?")
+    targetdate = ""
+    # if the unit is day then a date is generated by the defined x number of days.
+    if elements[1] == "d" or elements[1] == "D":
+        tempdate = dt.date.today() - dt.timedelta(days=int(elements[2]))
+        targetdate = str(tempdate.year) + str(tempdate.month) + str(tempdate.day)
+    # if the unit is week then a date is generated by the defined x number of Weeks.
+    elif elements[1] == "w" or elements[1] == "W":
+        tempdate = dt.date.today() - dt.timedelta(weeks=int(elements[2]))
+        targetdate = str(tempdate.year) + str(tempdate.month) + str(tempdate.day)
+    # if the unit is month then a date is generated by the defined x number of months.
+    elif elements[1] == "m" or elements[1] == "M":
+        month = int(dt.date.today().month) - int(elements[2])
+        targetdate = str(dt.date.today().year) + str(month) + str(dt.date.today().day)
+    # Replaces the date tag with the generated date the returns the new Target file name.
+    file_temp = re.sub(r"{date.*}", targetdate, file_name)
+    file_name = re.sub(r"\n", "", file_temp)
+    return file_name
+
+
 def copy_function(aline):
-    temp = aline.split("|")
-    action = RuleValue(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5])
-    if not os.path.exists(action.sourcepath):
-        logwrite("COPY", "The source path does not exists "+action.sourcepath, "ERROR")
+    """This runs the operation copy
+
+    Args:
+        aline (str): Holds the complete line from the housekepper.txt file
+    """
+    action_line = RuleValue.from_string(aline)
+    # If date tag is present in the TargetFile then insert the required generated date
+    action_line.updatetargetfile(tragetfile_date_insert(action_line.targetfile))
+    # Check if the Source path exists if it does not write the error to the log
+    # and stop processing the rule
+    if not os.path.exists(action_line.sourcepath):
+        logwrite(
+            "COPY", "The source path does not exists " + action_line.sourcepath, "ERROR"
+        )
         return
-    if not os.path.exists(action.targetpath):
-        logwrite("COPY", "The target path does not exists "+action.targetpath, "ERROR")
+    # Check if the Target path exists if it does not write the error to the log
+    # and stop processing the rule
+    if not os.path.exists(action_line.targetpath):
+        logwrite(
+            "COPY", "The target path does not exists " + action_line.targetpath, "ERROR"
+        )
         return
-    if action.fileage == 0:
-        # If there is not a file age defined the just copy the files as defined by the rule
-        for file in glob.glob(os.path.join(action.sourcepath,action.sourcefile)):
-            shutil.copy(file, action.targetpath+"\\")
-            message = "Successfully copied " + file
-            logwrite("COPY", message)
-    elif action.fileage > 0:
-        # There is an age limit on the files to be copied
-        current_dt = dt.datetime.now()
-        current_ts = current_dt.timestamp()
-        for file in glob.glob(os.path.join(action.sourcepath,action.sourcefile)):
-            file_ts = os.stat(file).st_mtime
-            if (current_ts - file_ts) > action.fileage:
-                shutil.copy(file, action.targetpath+"\\")
+    # If the file age set to 0 then process the rule file
+    if action_line.fileage == 0:
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
+            try:
+                # if there is no Target File and the Source File does not contain a wild card '*'
+                # it takes the Source File name and uses it as the Target File Name
+                if (
+                    action_line.targetfile == ""
+                    and action_line.sourcefile.find("*") == -1
+                ):
+                    target = os.path.join(
+                        action_line.targetpath, os.path.basename(file)
+                    )
+                # Checks to see if Source File does not contain a wild card '*'
+                # it used the Traget Path and Target File Name
+                elif action_line.sourcefile.find("*") == -1:
+                    target = os.path.join(
+                        action_line.targetpath, action_line.targetfile
+                    )
+                # All other cases it only uses the Target Path
+                else:
+                    target = action_line.targetpath
+                shutil.copy(file, target)
                 message = "Successfully copied " + file
                 logwrite("COPY", message)
+            except getopt.GetoptError:
+                # If there is an error write the error to the log file
+                message = "Failed to copied " + file
+                logwrite("COPY", message, "ERROR")
+    # If the file age set to 1 or more than, then process the rule file
+    elif action_line.fileage > 0:
+        current_dt = dt.datetime.now()
+        current_ts = current_dt.timestamp()
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
+            file_ts = os.stat(file).st_mtime
+            if (current_ts - file_ts) < action_line.fileage:
+                try:
+                    # if there is no Target File and the Source File does not contain
+                    # a wild card '*' it takes the Source File name and uses it as the
+                    # Target File Name
+                    if (
+                        action_line.targetfile == ""
+                        and action_line.sourcefile.find("*") == -1
+                    ):
+                        target = os.path.join(
+                            action_line.targetpath, os.path.basename(file)
+                        )
+                    # Checks to see if Source File does not contain a wild card '*'
+                    # it used the Traget Path and Target File Name
+                    elif action_line.sourcefile.find("*") == -1:
+                        target = os.path.join(
+                            action_line.targetpath, action_line.targetfile
+                        )
+                    # All other cases it only uses only the Target Path
+                    else:
+                        target = action_line.targetpath
+                    # Copy the file
+                    shutil.copy(file, target)
+                    message = "Successfully copied " + file + " to " + target
+                    logwrite("COPY", message)
+                except getopt.GetoptError:
+                    # If there is an error write the error to the log file
+                    message = "Failed to copied " + file + " to " + target
+                    logwrite("COPY", message, "ERROR")
 
 
 def archive_function(aline):
-    # todo Need function to Archive(gzip)
-    temp = aline.split("|")
-    action = RuleValue(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5])
-    if not os.path.exists(action.sourcepath):
-        logwrite("COPY", "The source path does not exists " + action.sourcepath, "ERROR")
+    """This runs the operation archive
+
+    Args:
+        aline (str): Holds the complete line from the housekepper.txt file
+    """
+    action_line = RuleValue.from_string(aline)
+    action_line.updatetargetfile(tragetfile_date_insert(action_line.targetfile))
+    # Check if the Source path exists if it does not write the error to
+    # the log and stop processing the rule
+    if not os.path.exists(action_line.sourcepath):
+        logwrite(
+            "COPY", "The source path does not exists " + action_line.sourcepath, "ERROR"
+        )
         return
-    if not os.path.exists(action.targetpath):
-        logwrite("COPY", "The target path does not exists " + action.targetpath, "ERROR")
+    # Check if the Target path exists if it does not write the error to
+    # the log and stop processing the rule
+    if not os.path.exists(action_line.targetpath):
+        logwrite(
+            "COPY", "The target path does not exists " + action_line.targetpath, "ERROR"
+        )
         return
-    if action.fileage == 0:
-        # If there is not a file age defined the just copy the files as defined by the rule
-        for file in glob.glob(os.path.join(action.sourcepath,action.sourcefile)):
-            zip_filename = re.sub(r'\..{3}$', '.zip', file)
-            zip_file = os.path.join(action.targetpath, zip_filename)
-            with ZipFile(zip_file, 'w')as zipf:
-                zipf.write(file, arcname=file)
-            message = "Archived " + file
-            logwrite("ARCHIVE", message)
-    elif action.fileage > 0:
+    # If the file age set to 0 then process the rule file
+    if action_line.fileage == 0:
+        # use glob to gain a list of all files that match the file name
+        # defined in Source File
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
+            try:
+                # takes the file name and create the file name for the
+                # zip archive then create the required ZipFile
+                zip_filename = re.sub(r"\..{3}$", ".zip", file)
+                zip_file = os.path.join(action_line.targetpath, zip_filename)
+                with ZipFile(zip_file, "w") as zipf:
+                    zipf.write(file)
+                message = "Archived " + file
+                logwrite("ARCHIVE", message)
+            except getopt.GetoptError:
+                # If there is an error write the error to the log file and skip to the next file
+                message = "Failed to archived " + file + " to " + zip_file
+                logwrite("ARCHIVE", message, "ERROR")
+                continue
+            try:
+                # os.remove(file)
+                message = "Remove Archivied File " + file
+                logwrite("ARCHIVE", message, "INFO")
+            except getopt.GetoptError:
+                # If there is an error write the error to the log file
+                message = "Can't remove Archivied File " + file
+                logwrite("ARCHIVE", message, "WARN")
+    # If the file age set to 1 or more than, then process the rule file
+    elif action_line.fileage > 0:
+        current_dt = dt.datetime.now()
+        current_ts = current_dt.timestamp()
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
+            file_ts = os.stat(file).st_mtime
+            if (current_ts - file_ts) > action_line.fileage:
+                try:
+                    zip_filename = re.sub(r"\..{3}$", ".zip", os.path.basename(file))
+                    zip_file = os.path.join(action_line.targetpath, zip_filename)
+                    with ZipFile(zip_file, "w") as zipf:
+                        zipf.write(file)
+                    message = "Archived " + file + " to " + zip_file
+                    logwrite("ARCHIVE", message)
+                except getopt.GetoptError:
+                    # If there is an error write the error to the log file and skip to the next file
+                    message = "Failed to archived " + file + " to " + zip_file
+                    logwrite("ARCHIVE", message, "ERROR")
+                    continue
+                try:
+                    # os.remove(file)
+                    message = "Remove Archivied File " + file
+                    logwrite("ARCHIVE", message, "INFO")
+                except getopt.GetoptError:
+                    # If there is an error write the error to the log file
+                    message = "Can't remove Archivied File " + file
+                    logwrite("ARCHIVE", message, "WARN")
+
+
+def group_archive_function(aline):
+    """This runs the group operation archive
+
+    Args:
+        aline (str): Holds the complete line from the housekepper.txt file
+    """
+    action_line = RuleValue.from_string(aline)
+    action_line.updatetargetfile(tragetfile_date_insert(action_line.targetfile))
+    # Check if the Source path exists if it does not write the error to
+    # the log and stop processing the rule
+    if not os.path.exists(action_line.sourcepath):
+        logwrite(
+            "COPY", "The source path does not exists " + action_line.sourcepath, "ERROR"
+        )
+        return
+    # Check if the Target path exists if it does not write the error to
+    # the log and stop processing the rule
+    if not os.path.exists(action_line.targetpath):
+        logwrite(
+            "COPY", "The target path does not exists " + action_line.targetpath, "ERROR"
+        )
+        return
+    # this flag is set to o until the zip archive is created then the
+    # flag is set to 1
+    zip_created = 0
+    # takes the file name and create the file name for the zip archive
+    # then create the required ZipFile
+    zip_filename = re.sub(r"\..{3}$", ".zip", action_line.targetfile)
+    zip_file = os.path.join(action_line.targetpath, zip_filename)
+    zip_file = zip_file.strip("\n")
+    # If there is not a file age defined the just copy the files as
+    # defined by the rule
+    if action_line.fileage == 0:
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
+            try:
+                # if the zip archive is present the add the current file to the zip archive
+                if zip_created != 0:
+                    with ZipFile(zip_file, "a") as zipf:
+                        zipf.write(file)
+                # if the zip archive is not present then create the zip archive and add the file
+                else:
+                    with ZipFile(zip_file, "w") as zipf:
+                        zipf.write(file)
+                        zip_created = 1
+                message = "Archived " + file
+                logwrite("GARCHIVE", message)
+            except getopt.GetoptError:
+                # If there is an error write the error to the log file and skip to the next file
+                message = "Failed to archived " + file + " to " + zip_file
+                logwrite("GARCHIVE", message, "ERROR")
+                continue
+            try:
+                # os.remove(file)
+                message = "Remove archived File " + file
+                logwrite("GARCHIVE", message, "INFO")
+            except getopt.GetoptError:
+                # If there is an error write the error to the log file
+                message = "Can't remove archived File " + file
+                logwrite("GARCHIVE", message, "WARN")
+    elif action_line.fileage > 0:
         # There is an age limit on the files to be copied
         current_dt = dt.datetime.now()
         current_ts = current_dt.timestamp()
-        for file in glob.glob(os.path.join(action.sourcepath,action.sourcefile)):
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
             file_ts = os.stat(file).st_mtime
-            if (current_ts - file_ts) > action.fileage:
-                zip_filename = re.sub(r'\..{3}$', '.zip', file)
-                zip_file = os.path.join(action.targetpath, zip_filename)
-                with ZipFile(zip_file, 'w') as zipf:
-                    zipf.write(file, arcname=file)
-                message = "Archived " +file + " to " + zip_file
-                logwrite("ARCHIVE", message)
-
-def group_archive_function(aline):
-    # todo Need function to GroupArchive(gzip)
-    print("Archive Group Function")
-    temp = aline.split("|")
-    action = RuleValue(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5])
-    if not os.path.exists(action.sourcepath):
-        logwrite("COPY", "The source path does not exists " + action.sourcepath, "ERROR")
-        return
-    if not os.path.exists(action.targetpath):
-        logwrite("COPY", "The target path does not exists " + action.targetpath, "ERROR")
-        return
+            if (current_ts - file_ts) > action_line.fileage:
+                try:
+                    if zip_created != 0:
+                        with ZipFile(zip_file, "a") as zipf:
+                            zipf.write(file)
+                    else:
+                        with ZipFile(zip_file, "w") as zipf:
+                            zipf.write(file)
+                            zip_created = 1
+                    message = "Archived " + file + " to " + zip_file
+                    logwrite("GARCHIVE", message)
+                except getopt.GetoptError:
+                    # If there is an error write the error to the log file and skip to the next file
+                    message = "Failed to archived " + file + " to " + zip_file
+                    logwrite("GARCHIVE", message, "ERROR")
+                    continue
+                try:
+                    # os.remove(file)
+                    message = "Remove archived File " + file
+                    logwrite("GARCHIVE", message, "INFO")
+                except getopt.GetoptError:
+                    # If there is an error write the error to the log file
+                    message = "Can't remove archived File " + file
+                    logwrite("GARCHIVE", message, "WARN")
 
 
 def delete_function(aline):
-    temp = aline.split("|")
-    action = RuleValue(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5])
-    if not os.path.exists(action.sourcepath):
-        logwrite("DELETE", "The source path does not exists " + action.sourcepath, "ERROR")
+    """This runs the operation delete
+
+    Args:
+        aline (str): Holds the complete line from the housekepper.txt file
+    """
+    action_line = RuleValue.from_string(aline)
+    action_line.updatetargetfile(tragetfile_date_insert(action_line.targetfile))
+    # Check if the Source path exists if it does not write the error to
+    # the log and stop processing the rule
+    if not os.path.exists(action_line.sourcepath):
+        logwrite(
+            "DELETE",
+            "The source path does not exists " + action_line.sourcepath,
+            "ERROR",
+        )
         return
-    if action.fileage == 0:
-        # If there is not a file age defined the just copy the files as defined by the rule
-        for file in glob.glob(os.path.join(action.sourcepath, action.sourcefile)):
-             #os.remove(file)
-             message = "Successfully deleted " + file
-             logwrite("DELETE", message)
-    elif action.fileage > 0:
-        # There is an age limit on the files to be copied
-        current_dt = dt.datetime.now()
-        current_ts = current_dt.timestamp()
-        for file in glob.glob(os.path.join(action.sourcepath, action.sourcefile)):
-            file_ts = os.stat(file).st_mtime
-            if (current_ts - file_ts) > action.fileage:
-                #os.remove(file)
+    # If the file age set to 0 then process the rule file
+    if action_line.fileage == 0:
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
+            try:
+                # delete the file and write action to the log
+                # os.remove(file)
                 message = "Successfully deleted " + file
                 logwrite("DELETE", message)
+            except getopt.GetoptError:
+                # If there is an error write the error to the log file
+                message = "Failed to delete " + file
+                logwrite("DELETE", message, "ERROR")
+    # If the file age set to 1 or more than, then process the rule file
+    elif action_line.fileage > 0:
+        current_dt = dt.datetime.now()
+        current_ts = current_dt.timestamp()
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
+            # get the file date from last modification
+            file_ts = os.stat(file)
+            # If file age is grater than the file age process file
+            if (current_ts - file_ts) > action_line.fileage:
+                try:
+                    # delete the file and write action to the log
+                    # os.remove(file)
+                    message = "Successfully deleted " + file
+                    logwrite("DELETE", message)
+                except getopt.GetoptError:
+                    # If there is an error write the error to the log file
+                    message = "Failed to delete " + file
+                    logwrite("DELETE", message, "ERROR")
 
 
 def move_function(aline):
-    temp = aline.split("|")
-    action = RuleValue(temp[0], temp[1], temp[2], temp[3], temp[4], temp[5])
-    if not os.path.exists(action.sourcepath):
-        logwrite("MOVE", "The source path does not exists '" + action.sourcepath + "'", "ERROR")
+    """This runs the operation move
+
+    Args:
+        aline (str): Holds the complete line from the housekepper.txt file
+    """
+    action_line = RuleValue.from_string(aline)
+    action_line.updatetargetfile(tragetfile_date_insert(action_line.targetfile))
+    # Check if the Source path exists if it does not write the error to
+    # the log and stop processing the rule
+    if not os.path.exists(action_line.sourcepath):
+        logwrite(
+            "MOVE",
+            "The source path does not exists '" + action_line.sourcepath + "'",
+            "ERROR",
+        )
         return
-    if not os.path.exists(action.targetpath):
-        logwrite("MOVE", "The target path does not exists '" + action.targetpath + "'", "ERROR")
+    # Check if the Source path exists if it does not write the error to
+    # the log and stop processing the rule
+    if not os.path.exists(action_line.targetpath):
+        logwrite(
+            "MOVE",
+            "The target path does not exists '" + action_line.targetpath + "'",
+            "ERROR",
+        )
         return
-    if action.fileage == 0:
+    # If the file age set to 0 then process the rule file
+    if action_line.fileage == 0:
         # If there is not a file age defined the just copy the files as defined by the rule
-        for file in glob.glob(os.path.join(action.sourcepath, action.sourcefile)):
-            #shutil.move(file, action.targetpath+"\\")
-            message = "Successfully moved " + file + " to " + action.tragetpath
-            logwrite("MOVE", message)
-    elif action.fileage > 0:
-        # There is an age limit on the files to be copied
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
+            try:
+                # if there is no Target File and the Source File does not contain a wild card '*'
+                # it takes the Source File name and uses it as the Target File Name
+                if (
+                    action_line.targetfile == ""
+                    and action_line.sourcefile.find("*") == -1
+                ):
+                    target = os.path.join(
+                        action_line.targetpath, os.path.basename(file)
+                    )
+                # Checks to see if Source File does not contain a wild card '*'
+                # it used the Traget Path and Target File Name
+                elif action_line.sourcefile.find("*") == -1:
+                    target = os.path.join(
+                        action_line.targetpath, action_line.targetfile
+                    )
+                # All other cases it only uses the Target Path
+                else:
+                    target = action_line.targetpath
+
+                # shutil.move(file, target)
+                message = "Successfully moved " + file + " to " + target
+                logwrite("MOVE", message)
+            except getopt.GetoptError:
+                # If there is an error write the error to the log file
+                message = "Failed to move " + file
+                logwrite("DELETE", message, "ERROR")
+    # If the file age set to 1 or more than, then process the rule file
+    elif action_line.fileage > 0:
         current_dt = dt.datetime.now()
         current_ts = current_dt.timestamp()
-        for file in glob.glob(os.path.join(action.sourcepath, action.sourcefile)):
+        for file in glob.glob(
+            os.path.join(action_line.sourcepath, action_line.sourcefile)
+        ):
             file_ts = os.stat(file).st_mtime
-            if (current_ts - file_ts) > action.fileage:
-                #shutil.move(file, action.targetpath+"\\")
-                message = "Successfully moved " + file + " to " + action.sourcepath
-                logwrite("MOVE", message)
+            if (current_ts - file_ts) > action_line.fileage:
+                try:
+                    # if there is no Target File and the Source File does not contain
+                    # a wild card '*' it takes the Source File name and uses it as the
+                    # Target File Name
+                    if (
+                        action_line.targetfile == ""
+                        and action_line.sourcefile.find("*") == -1
+                    ):
+                        target = os.path.join(
+                            action_line.targetpath, os.path.basename(file)
+                        )
+                    # Checks to see if Source File does not contain a wild card '*'
+                    # it used the Traget Path and Target File Name
+                    elif action_line.sourcefile.find("*") == -1:
+                        target = os.path.join(
+                            action_line.targetpath, action_line.targetfile
+                        )
+                    # All other cases it only uses the Target Path
+                    else:
+                        target = action_line.targetpath
+                    # shutil.move(file, target)
+                    message = "Successfully moved " + file + " to " + target
+                    logwrite("MOVE", message)
+                except getopt.GetoptError:
+                    # If there is an error write the error to the log file
+                    message = "Failed to move " + file
+                    logwrite("DELETE", message, "ERROR")
 
-#**********************************************
-#* Main Script
-#**********************************************
+
+# **********************************************
+# * Main Script
+# **********************************************
 argv = sys.argv[1:]
-rulesfile = ''
 try:
     opts, args = getopt.getopt(argv, "hi:", ["ifile="])
 except getopt.GetoptError:
     print("Usage:")
-    print('housekeeper.py -i <rulesfile>')
+    print("housekeeper.py -i <rulesfile>")
     sys.exit(2)
 for opt, arg in opts:
-    if opt == '-h':
+    if opt == "-h":
         print("Usage:")
-        print('housekeeper.py -i <rulesfile>')
+        print("housekeeper.py -i <rulesfile>")
         sys.exit()
     elif opt in ("-i", "--ifile"):
         rulesfile = arg
-        logext = str(dt.date.today()) + ".log"
-        logfile = arg.replace('.txt', logext)
-f = open(rulesfile, 'r')
+        LOGEXT = (
+            str(dt.date.today().year)
+            + str(dt.date.today().month)
+            + str(dt.date.today().day)
+            + ".log"
+        )
+        logfile = arg.replace(".txt", LOGEXT)
+lf = open(logfile, "a", encoding="utf-8")
+logwrite(__name__, "Starting House keeping.")
+try:
+    f = open(rulesfile, "r", encoding="utf-8")
+    logwrite(__name__, "Using " + rulesfile + " Rules File")
+except getopt.GetoptError:
+    message = "Failed to open " + rulesfile + " Rules File"
+    logwrite(__name__, message,"ERROR")
+  
 lines = f.readlines()
-lf = open(logfile, 'a')
-
-logwrite("MAIN", "Starting House keeping.")
 for line in lines:
-    regexp = re.compile(r'^[CAGDM]*|')
+    regexp = re.compile(r"^[CAGDM]*|")
     temp = regexp.search(line)
-    action=temp.group()
-    if action == '':
+    action = temp.group()
+    if action == "":
         continue
-    #select the required action
+    # select the required action
     if action == "C":
         # Call the Copy Function
         copy_function(line)
-    elif action == 'A':
+    elif action == "A":
         # Call the Archive Function
         archive_function(line)
-    elif action == 'GA':
+    elif action == "G":
         # Call the Group Archive function
-        delete_function(line)
-    elif action == 'D':
+        group_archive_function(line)
+    elif action == "D":
         # Call the Delete Function
         delete_function(line)
-    elif action == 'M':
+    elif action == "M":
         # Call the Move Function
         move_function(line)
     else:
+        message = 'Could not process : "' + line + '"'
+        logwrite(__name__, message,"WARN")
         continue
 
-print("END of Script")
-
-
+logwrite("MAIN", "End of house keeping")

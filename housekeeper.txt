@@ -1,15 +1,32 @@
 # House keeper configuration
-# Each Feild is seprated by | 
-# Order of Feilds
-# 01.   Operation: C - Copy, A - Archive, GA - Group Archive ,M - Move, D - Delete
+# Each Field is separated by |
+# Order of Fields
+# 01.   Operation: C - Copy, A - Archive, G - Group Archive ,M - Move, D - Delete
 # 02.   Source Path:
-# 03.   Filename (Wild Cards can be use to select Multiply files)
-# 04.   File age selection
-# 05.    
-# 06.   Target Path:
-# 07.   Traget Name:
+# 03.   Source Filename: Wild Cards can be used to select Multiply files
+# 04.   File age selection: 0 to set no Age Filtering is applied
+# 05.   Target Path:
+# 06.   Target Name: Can get a calculated date stamp in the file name by inserting the following tag in the
+#       position you need the date stamp which is in the format YYYYMMDD.
+#       tag:  {date?[d/w/m]?value}
+#               [d/w/m] is d = day  w = week  m = month
+#               Value is the number of the required units to be taken from current date
+#
+#Copy
+# C|<Source Path>|<Source Filename>|<File Age>|<Target Path|[Blank]
+#
+# Delete
+# D|<Source Path>|<Source Filename>|<File Age>|[Blank]|[Blank]
+#
+#Move
+# C|<Source Path>|<Source Filename>|<File Age>|<Target Path>|[Blanlk] or <Taget Name>
+#
+#ARCHIVE
+# A|<Source Path>|<Source Filename>|<File Age>|<Target Path>|[Blanlk]
+#
 
-A|C:\Users\cnlk\Downloads|*|10|C:\Users\cnlk\Documents||
-C|C:\Users\cnlk\Downloads|*.txt|10|C:\Users\cnlk\Documents|
-D|C:\Users\cnlk\Downloads|*.txt|10||
-M|C:\Users\cnlk\Downloads|*.txt|10|C:\Users\cnlk\Documents|
+C|E:\Downloads|*.rar|2|E:\Downloads\_test||
+G|E:\Downloads|*.txt|10|E:\Downloads\_test|textfiles{date?m?1}.zip
+A|E:\Downloads|*.txt|10|E:\Downloads\_test||
+D|E:\Downloads|*.txt|0||
+M|E:\Downloads|aaatest.txt|0|E:\Downloads\_test||
