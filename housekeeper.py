@@ -6,7 +6,7 @@
     Purpose:      File Management script to perform automatic actions defined by rules
     Version:      0.20
 
-    Description:
+    Description: File Management script to perform automatic actions defined by rules. The rules are defined in a text file and the script will read the rules and perform the actions defined in the rules. The actions can be copy, archive, group archive, delete or move. The script will also log the actions performed and any errors encountered.
 **********************************************************
 """
 # Import Modules
